@@ -136,6 +136,14 @@
     .delete-trial-btn:hover {
       background-color: #f8d7da;
     }
+    .formula-box {
+      background-color: #f5f5f5;
+      border-left: 4px solid #6c757d;
+      padding: 15px;
+      margin: 20px 0;
+      font-family: monospace;
+      overflow-x: auto;
+    }
   </style>
 </head>
 <body>
@@ -164,6 +172,7 @@
       <button class="tab-button active" data-tab="raw-data">Raw Data</button>
       <button class="tab-button" data-tab="position">Position Analysis</button>
       <button class="tab-button" data-tab="hypothesis">Hypothesis Testing</button>
+      <button class="tab-button" data-tab="weighted-analysis">Weighted Analysis</button>
     </div>
     
     <!-- Raw Data Tab -->
@@ -231,6 +240,63 @@
       <div id="hypothesis-details">
         <!-- Data will be inserted here -->
       </div>
+    </div>
+    
+    <!-- Weighted Analysis Tab (New) -->
+    <div id="weighted-analysis" class="tab-content">
+      <h3>Weighted Analysis</h3>
+      
+      <div class="highlight">
+        <h4>Addressing Over-Selection Bias</h4>
+        <p>This analysis penalizes trials where participants select too many words. This prevents high accuracy scores from participants who select many or all options.</p>
+        
+        <div class="formula-box">
+          <p><strong>Weighted Accuracy Formula:</strong></p>
+          <p>Standard Accuracy = Correct Selections / Total Available Correct</p>
+          <p>Precision = Correct Selections / Total Words Selected</p>
+          <p>Weighted Accuracy = Standard Accuracy × Precision</p>
+          <p>(This rewards participants who are selective with their choices)</p>
+        </div>
+      </div>
+      
+      <h4>Weighted Data</h4>
+      <div class="scrollable">
+        <table id="weighted-table">
+          <thead>
+            <tr>
+              <th>Participant</th>
+              <th>Standard Accuracy</th>
+              <th>Precision</th>
+              <th>Weighted Accuracy</th>
+              <th>Selection Count</th>
+              <th>Correct Count</th>
+              <th>List Length</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Data will be inserted here -->
+          </tbody>
+        </table>
+      </div>
+      
+      <h4>Weighted Position Analysis</h4>
+      <div class="highlight">
+        <p id="weighted-position-summary">No data available for weighted position analysis.</p>
+      </div>
+      
+      <table id="weighted-position-table">
+        <thead>
+          <tr>
+            <th>Position</th>
+            <th>Standard Recall</th>
+            <th>Weighted Recall</th>
+            <th>Sample Size</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Data will be inserted here -->
+        </tbody>
+      </table>
     </div>
   </div>
 
@@ -325,6 +391,7 @@
       updateRawDataTable();
       updatePositionAnalysis();
       updateHypothesisTesting();
+      updateWeightedAnalysis(); // New function
     }
     
     // Update overview stats
@@ -700,6 +767,201 @@
       document.getElementById('hypothesis-details').innerHTML = detailsHtml;
     }
     
+    // NEW FUNCTION: Update weighted analysis (penalizes over-selection)
+    function updateWeightedAnalysis() {
+      // Prepare tables
+      const tableEl = document.getElementById('weighted-table').querySelector('tbody');
+      tableEl.innerHTML = '';
+      
+      const positionTableEl = document.getElementById('weighted-position-table').querySelector('tbody');
+      positionTableEl.innerHTML = '';
+      
+      // Initialize position data (for 6-word trials)
+      const standardLength = 6;
+      const positionData = Array(standardLength).fill().map(() => ({ 
+        available: 0, 
+        standardRecall: 0,
+        weightedRecall: 0 
+      }));
+      
+      // Process all trials for weighted table
+      const sortedTrials = [...allTrials].sort((a, b) => {
+        return new Date(b.timestamp || 0) - new Date(a.timestamp || 0);
+      });
+      
+      sortedTrials.forEach(trial => {
+        // Get words shown, selected, and available
+        const shownWords = [];
+        const selectedWords = [];
+        const choiceOptions = [];
+        
+        // Extract shown words
+        for (let i = 1; i <= trial.listLength; i++) {
+          if (trial[`shown${i}`]) {
+            shownWords.push(trial[`shown${i}`]);
+          }
+        }
+        
+        // Extract choice options
+        const maxChoices = trial.numChoices || 6;
+        for (let i = 1; i <= maxChoices; i++) {
+          if (trial[`choice${i}`]) {
+            choiceOptions.push(trial[`choice${i}`]);
+          }
+        }
+        
+        // Extract selected words
+        for (let i = 1; trial[`selected${i}`]; i++) {
+          selectedWords.push(trial[`selected${i}`]);
+        }
+        
+        // Calculate metrics
+        const correctChoices = choiceOptions.filter(word => shownWords.includes(word));
+        const correctSelections = selectedWords.filter(word => shownWords.includes(word)).length;
+        
+        // Skip if no data
+        if (correctChoices.length === 0 || selectedWords.length === 0) {
+          return;
+        }
+        
+        // Standard accuracy (recall)
+        const standardAccuracy = correctChoices.length > 0 ? 
+          (correctSelections / correctChoices.length) * 100 : 0;
+        
+        // Precision (correct out of total selected)
+        const precision = selectedWords.length > 0 ? 
+          (correctSelections / selectedWords.length) * 100 : 0;
+        
+        // Weighted accuracy (recall * precision)
+        const weightedAccuracy = (standardAccuracy * precision) / 100; // divide by 100 to keep in percentage
+        
+        // Create row for weighted table
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${trial.participantName || 'Anonymous'}</td>
+          <td>${standardAccuracy.toFixed(1)}%</td>
+          <td>${precision.toFixed(1)}%</td>
+          <td>${weightedAccuracy.toFixed(1)}%</td>
+          <td>${selectedWords.length}</td>
+          <td>${correctSelections}/${correctChoices.length}</td>
+          <td>${trial.listLength}</td>
+        `;
+        tableEl.appendChild(row);
+        
+        // Contribute to position data (only for 6-word trials)
+        if (trial.listLength === standardLength) {
+          // Track position-specific weighted recall
+          for (let pos = 0; pos < standardLength; pos++) {
+            const word = trial[`shown${pos + 1}`];
+            
+            if (word && choiceOptions.includes(word)) {
+              positionData[pos].available++;
+              
+              // Calculate standard recall for this position
+              if (selectedWords.includes(word)) {
+                positionData[pos].standardRecall++;
+                
+                // Apply weighting (precision) to this word's recall
+                const wordWeightedValue = precision / 100; // Convert precision to decimal
+                positionData[pos].weightedRecall += wordWeightedValue;
+              }
+            }
+          }
+        }
+      });
+      
+      // Create weighted position analysis table
+      for (let pos = 0; pos < standardLength; pos++) {
+        const data = positionData[pos];
+        
+        if (data.available > 0) {
+          // Calculate rates
+          const standardRate = (data.standardRecall / data.available) * 100;
+          const weightedRate = (data.weightedRecall / data.available) * 100;
+          
+          // Create row
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>Position ${pos + 1}</td>
+            <td>${standardRate.toFixed(1)}%</td>
+            <td>${weightedRate.toFixed(1)}%</td>
+            <td>${data.available}</td>
+          `;
+          positionTableEl.appendChild(row);
+        }
+      }
+      
+      // Generate position summary
+      if (positionData.some(d => d.available > 0)) {
+        // Calculate rates
+        const standardRates = positionData.map(p => 
+          p.available > 0 ? (p.standardRecall / p.available) : 0
+        );
+        
+        const weightedRates = positionData.map(p => 
+          p.available > 0 ? (p.weightedRecall / p.available) : 0
+        );
+        
+        // Check for position effects using weighted rates
+        const middleData = positionData.slice(1, standardLength - 1);
+        const middleAvailable = middleData.reduce((sum, p) => sum + p.available, 0);
+        const middleWeightedRecall = middleData.reduce((sum, p) => sum + p.weightedRecall, 0);
+        const middleWeightedRate = middleAvailable > 0 ? middleWeightedRecall / middleAvailable : 0;
+        
+        // Need minimum sample sizes
+        const sufficientFirstData = positionData[0].available >= 5;
+        const sufficientMiddleData = middleAvailable >= 10;
+        const sufficientLastData = positionData[standardLength - 1].available >= 5;
+        
+        let summary = "";
+        
+        if (!sufficientFirstData || !sufficientMiddleData || !sufficientLastData) {
+          summary = "Insufficient data for reliable weighted position analysis. More trials needed.";
+        } else {
+          // Check for effects with weighted data
+          const weightedPrimacyEffect = weightedRates[0] > (middleWeightedRate * 1.15);
+          const weightedRecencyEffect = weightedRates[standardLength - 1] > (middleWeightedRate * 1.15);
+          
+          // Compare with standard effects
+          const middleStandardRecall = middleData.reduce((sum, p) => sum + p.standardRecall, 0);
+          const middleStandardRate = middleAvailable > 0 ? middleStandardRecall / middleAvailable : 0;
+          const standardPrimacyEffect = standardRates[0] > (middleStandardRate * 1.15);
+          const standardRecencyEffect = standardRates[standardLength - 1] > (middleStandardRate * 1.15);
+          
+          summary = "Weighted analysis ";
+          
+          if (weightedPrimacyEffect && weightedRecencyEffect) {
+            summary += "shows strong evidence of both primacy and recency effects.";
+          } else if (weightedPrimacyEffect) {
+            summary += "shows evidence of primacy effect only.";
+          } else if (weightedRecencyEffect) {
+            summary += "shows evidence of recency effect only.";
+          } else {
+            summary += "shows no position effects when accounting for selection bias.";
+          }
+          
+          // Compare with standard analysis
+          if ((weightedPrimacyEffect !== standardPrimacyEffect) || 
+              (weightedRecencyEffect !== standardRecencyEffect)) {
+            summary += " This differs from the standard analysis, suggesting that selection bias may be impacting the results.";
+          }
+          
+          // Add explanation about what changed
+          if (!weightedPrimacyEffect && standardPrimacyEffect) {
+            summary += " The primacy effect seen in the standard analysis disappears when controlling for over-selection.";
+          }
+          if (!weightedRecencyEffect && standardRecencyEffect) {
+            summary += " The recency effect seen in the standard analysis disappears when controlling for over-selection.";
+          }
+        }
+        
+        document.getElementById('weighted-position-summary').textContent = summary;
+      } else {
+        document.getElementById('weighted-position-summary').textContent = 
+          "No data available for weighted position analysis.";
+      }
+    }
+    
     // Export data as CSV
     function exportCSV() {
       if (allTrials.length === 0) {
@@ -707,12 +969,13 @@
         return;
       }
       
-      // Create CSV content
-      let csvContent = "Participant,Trial Number,List Length,Words Shown,Words Selected,Correct Selections,Accuracy\n";
+      // Create CSV content with both standard and weighted metrics
+      let csvContent = "Participant,Trial Number,List Length,Words Shown,Words Selected,Correct Selections,Standard Accuracy,Precision,Weighted Accuracy\n";
       
       allTrials.forEach(trial => {
         const shownWords = [];
         const selectedWords = [];
+        const choiceOptions = [];
         
         // Extract shown words
         for (let i = 1; i <= trial.listLength; i++) {
@@ -726,9 +989,28 @@
           selectedWords.push(trial[`selected${i}`]);
         }
         
+        // Extract choice options
+        const maxChoices = trial.numChoices || 6;
+        for (let i = 1; i <= maxChoices; i++) {
+          if (trial[`choice${i}`]) {
+            choiceOptions.push(trial[`choice${i}`]);
+          }
+        }
+        
         // Calculate metrics
+        const correctChoices = choiceOptions.filter(word => shownWords.includes(word));
         const correctSelections = selectedWords.filter(word => shownWords.includes(word)).length;
-        const accuracy = ((correctSelections / shownWords.length) * 100).toFixed(1);
+        
+        // Standard accuracy (recall)
+        const standardAccuracy = correctChoices.length > 0 ? 
+          (correctSelections / correctChoices.length) * 100 : 0;
+        
+        // Precision (correct out of total selected)
+        const precision = selectedWords.length > 0 ? 
+          (correctSelections / selectedWords.length) * 100 : 0;
+        
+        // Weighted accuracy
+        const weightedAccuracy = (standardAccuracy * precision) / 100;
         
         // Format CSV row
         const row = [
@@ -738,7 +1020,9 @@
           shownWords.join('|'),
           selectedWords.join('|'),
           correctSelections,
-          accuracy
+          standardAccuracy.toFixed(1),
+          precision.toFixed(1),
+          weightedAccuracy.toFixed(1)
         ];
         
         // Add row to CSV content
