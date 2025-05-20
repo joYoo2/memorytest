@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Memory Experiment Admin Panel</title>
+  <style>
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding: 20px;
+      line-height: 1.6;
+      max-width: 1200px;
+      margin: 0 auto;
+      color: #333;
+    }
+    h1, h2, h3, h4 { 
+      color: #2c3e50;
+      margin-top: 30px;
+    }
+    .panel {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 30px;
+    }
+    .btn {
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 10px;
+    }
+    .btn-danger {
+      background: #e74c3c;
+    }
+    .btn:hover {
+      opacity: 0.9;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: left;
+    }
+    th {
+      background-color: #f8f9fa;
+      font-weight: 600;
+    }
+    .status {
+      margin: 15px 0;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    .status.success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .status.error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    .hidden {
+      display: none;
+    }
+    .tab-container {
+      margin-top: 20px;
+    }
+    .tab-buttons {
+      display: flex;
+      border-bottom: 1px solid #ddd;
+      margin-bottom: 20px;
+    }
+    .tab-button {
+      padding: 10px 20px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      font-weight: 500;
+    }
+    .tab-button.active {
+      border-bottom-color: #3498db;
+      color: #3498db;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    canvas {
+      max-width: 100%;
+      height: auto;
+      margin: 20px 0;
+    }
+    .highlight {
+      background-color: #f8f9fa;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      border-left: 4px solid #3498db;
+    }
+    .correct {
+      color: #28a745;
+      font-weight: bold;
+    }
+    .incorrect {
+      color: #dc3545;
+      font-weight: bold;
+    }
+    .scrollable {
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    #status-message {
+      padding: 10px;
+      margin: 15px 0;
+      display: none;
+    }
+    .delete-trial-btn {
+      color: #e74c3c;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 16px;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .delete-trial-btn:hover {
+      background-color: #f8d7da;
+    }
+  </style>
+</head>
+<body>
+  <h1>Memory Experiment Admin Panel</h1>
+  <p>Analysis of word presentation order effects on recall</p>
+  
+  <div class="panel">
+    <h2>Actions</h2>
+    <button id="load-btn" class="btn">Load Data</button>
+    <button id="export-btn" class="btn">Export as CSV</button>
+    <button id="delete-btn" class="btn btn-danger">Delete All Data</button>
+    <div id="status-message"></div>
+  </div>
+  
+  <div class="panel">
+    <h2>Study Overview</h2>
+    <div id="stats-container">
+      <p>Total Participants: <span id="total-participants">-</span></p>
+      <p>Total Trials: <span id="total-trials">-</span></p>
+      <p>Average Accuracy: <span id="avg-accuracy">-</span></p>
+    </div>
+  </div>
+
+  <div class="tab-container">
+    <div class="tab-buttons">
+      <button class="tab-button active" data-tab="raw-data">Raw Data</button>
+      <button class="tab-button" data-tab="position">Position Analysis</button>
+      <button class="tab-button" data-tab="hypothesis">Hypothesis Testing</button>
+    </div>
+    
+    <!-- Raw Data Tab -->
+    <div id="raw-data" class="tab-content active">
+      <h3>Raw Data</h3>
+      <div class="scrollable">
+        <table id="raw-data-table">
+          <thead>
+            <tr>
+              <th>Participant</th>
+              <th>List Length</th>
+              <th>Presentation Order</th>
+              <th>Choices</th>
+              <th>Selected</th>
+              <th>Accuracy</th>
+              <th>Delete</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Data will be inserted here -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- Position Analysis Tab -->
+    <div id="position" class="tab-content">
+      <h3>Position Effects Analysis</h3>
+      
+      <div class="highlight">
+        <h4>Recall by Position Summary</h4>
+        <p id="position-summary">No data available for analysis.</p>
+      </div>
+      
+      <h4>First Position Recall Rate: <span id="first-position-rate">-</span></h4>
+      <h4>Middle Positions Recall Rate: <span id="middle-positions-rate">-</span></h4>
+      <h4>Last Position Recall Rate: <span id="last-position-rate">-</span></h4>
+      
+      <h4>Position Details</h4>
+      <table id="position-table">
+        <thead>
+          <tr>
+            <th>Position</th>
+            <th>Recall Rate</th>
+            <th>Misses</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Data will be inserted here -->
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- Hypothesis Testing Tab -->
+    <div id="hypothesis" class="tab-content">
+      <h3>Hypothesis Testing</h3>
+      
+      <div class="highlight">
+        <h4>Null Hypothesis</h4>
+        <p>H₀: The order in which words are presented does not affect recall accuracy</p>
+        <h4>Results</h4>
+        <p id="hypothesis-result">No data available for analysis.</p>
+      </div>
+      
+      <div id="hypothesis-details">
+        <!-- Data will be inserted here -->
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.7.3/firebase-app.js';
+    import { getFirestore, collection, getDocs, deleteDoc, doc } from 'https://www.gstatic.com/firebasejs/11.7.3/firebase-firestore.js';
+
+    // Initialize Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyBBMg82BmMWYsaUzgDJDKUmS_LtfRPrYZs",
+      authDomain: "ordereffectstudy.firebaseapp.com",
+      projectId: "ordereffectstudy",
+      storageBucket: "ordereffectstudy.firebasestorage.app",
+      messagingSenderId: "938311020791",
+      appId: "1:938311020791:web:bd500efe48de1a48dce3f2",
+      measurementId: "G-DZYLNQ5YLX"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    
+    // Store all trials
+    let allTrials = [];
+    
+    // Show status message
+    function showStatus(message, type = 'success') {
+      const statusEl = document.getElementById('status-message');
+      statusEl.textContent = message;
+      statusEl.className = type === 'success' ? 'status success' : 'status error';
+      statusEl.style.display = 'block';
+      
+      // Hide after 3 seconds
+      setTimeout(() => {
+        statusEl.style.display = 'none';
+      }, 3000);
+    }
+    
+    // Tab switching
+    document.querySelectorAll('.tab-button').forEach(button => {
+      button.addEventListener('click', () => {
+        // Remove active class from all buttons and content
+        document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        // Add active class to clicked button and corresponding content
+        button.classList.add('active');
+        document.getElementById(button.getAttribute('data-tab')).classList.add('active');
+      });
+    });
+    
+    // Load data from Firestore
+    async function loadData() {
+      try {
+        const snapshot = await getDocs(collection(db, "trials"));
+        allTrials = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        
+        // Update UI
+        showStatus(`Loaded ${allTrials.length} trials successfully`);
+        updateAllUI();
+        
+        return allTrials;
+      } catch (error) {
+        console.error("Error loading data:", error);
+        showStatus("Failed to load data. Check console for details.", 'error');
+      }
+    }
+    
+    // Delete a single trial
+    async function deleteTrial(trialId) {
+      if (!confirm("Are you sure you want to delete this trial?")) {
+        return;
+      }
+      
+      try {
+        await deleteDoc(doc(db, "trials", trialId));
+        
+        // Remove from local array
+        allTrials = allTrials.filter(trial => trial.id !== trialId);
+        
+        // Update UI
+        updateAllUI();
+        showStatus("Trial deleted successfully");
+      } catch (error) {
+        console.error("Error deleting trial:", error);
+        showStatus("Failed to delete trial. Check console for details.", 'error');
+      }
+    }
+    
+    // Update all UI elements with data
+    function updateAllUI() {
+      updateOverviewStats();
+      updateRawDataTable();
+      updatePositionAnalysis();
+      updateHypothesisTesting();
+    }
+    
+    // Update overview stats
+    function updateOverviewStats() {
+      document.getElementById('total-trials').textContent = allTrials.length;
+      
+      const uniqueParticipants = new Set(allTrials.map(t => t.participantName)).size;
+      document.getElementById('total-participants').textContent = uniqueParticipants;
+      
+      // Calculate average accuracy
+      let totalCorrect = 0;
+      let totalPossible = 0;
+      
+      allTrials.forEach(trial => {
+        const shownWords = [];
+        const selectedWords = [];
+        const choiceOptions = [];
+        
+        // Extract shown words
+        for (let i = 1; i <= trial.listLength; i++) {
+          if (trial[`shown${i}`]) {
+            shownWords.push(trial[`shown${i}`]);
+          }
+        }
+        
+        // Extract choice options
+        const maxChoices = trial.numChoices || 6;
+        for (let i = 1; i <= maxChoices; i++) {
+          if (trial[`choice${i}`]) {
+            choiceOptions.push(trial[`choice${i}`]);
+          }
+        }
+        
+        // Extract selected words
+        for (let i = 1; trial[`selected${i}`]; i++) {
+          selectedWords.push(trial[`selected${i}`]);
+        }
+        
+        // Count correct selections (only from words that were shown AND available as choices)
+        const correctChoices = choiceOptions.filter(word => shownWords.includes(word));
+        const correctSelections = selectedWords.filter(word => shownWords.includes(word)).length;
+        
+        totalCorrect += correctSelections;
+        totalPossible += correctChoices.length;
+      });
+      
+      const avgAccuracy = totalPossible > 0 ? ((totalCorrect / totalPossible) * 100).toFixed(1) + '%' : 'N/A';
+      document.getElementById('avg-accuracy').textContent = avgAccuracy;
+    }
+    
+    // Update raw data table
+    function updateRawDataTable() {
+      const tableEl = document.getElementById('raw-data-table').querySelector('tbody');
+      tableEl.innerHTML = '';
+      
+      // Sort by timestamp, most recent first
+      const sortedTrials = [...allTrials].sort((a, b) => {
+        return new Date(b.timestamp || 0) - new Date(a.timestamp || 0);
+      });
+      
+      sortedTrials.forEach(trial => {
+        const shownWords = [];
+        const selectedWords = [];
+        const choiceOptions = [];
+        
+        // Extract shown words (in original presentation order)
+        for (let i = 1; i <= trial.listLength; i++) {
+          if (trial[`shown${i}`]) {
+            shownWords.push(trial[`shown${i}`]);
+          }
+        }
+        
+        // Extract choice options
+        const maxChoices = trial.numChoices || 6;
+        for (let i = 1; i <= maxChoices; i++) {
+          if (trial[`choice${i}`]) {
+            choiceOptions.push(trial[`choice${i}`]);
+          }
+        }
+        
+        // Extract selected words
+        for (let i = 1; trial[`selected${i}`]; i++) {
+          selectedWords.push(trial[`selected${i}`]);
+        }
+        
+        // Calculate accuracy (correct selections out of possible correct choices)
+        const correctChoices = choiceOptions.filter(word => shownWords.includes(word));
+        const correctSelections = selectedWords.filter(word => shownWords.includes(word)).length;
+        const possibleCorrect = correctChoices.length;
+        
+        const accuracy = possibleCorrect > 0 ? ((correctSelections / possibleCorrect) * 100).toFixed(1) + '%' : 'N/A';
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${trial.participantName || 'Anonymous'}</td>
+          <td>${trial.listLength}</td>
+          <td>${shownWords.join(' → ')}</td>
+          <td>${choiceOptions.map(word => shownWords.includes(word) ? 
+            `<span class="correct">${word}</span>` : word).join(', ')}</td>
+          <td>${selectedWords.map(word => shownWords.includes(word) ? 
+            `<span class="correct">${word}</span>` : 
+            `<span class="incorrect">${word}</span>`).join(', ')}</td>
+          <td>${accuracy}</td>
+          <td><span class="delete-trial-btn" data-id="${trial.id}">✕</span></td>
+        `;
+        tableEl.appendChild(row);
+      });
+      
+      // Add event listeners to delete buttons
+      document.querySelectorAll('.delete-trial-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const trialId = e.target.getAttribute('data-id');
+          deleteTrial(trialId);
+        });
+      });
+    }
+    
+    // Update position analysis
+    function updatePositionAnalysis() {
+      // All trials are now standardized to 6 words
+      const standardLength = 6;
+      const positionData = Array(standardLength).fill().map(() => ({ shown: 0, available: 0, recalled: 0 }));
+      
+      // Filter only 6-word trials
+      const standardTrials = allTrials.filter(t => t.listLength === standardLength);
+      
+      if (standardTrials.length === 0) {
+        document.getElementById('position-summary').textContent = "No data available for position analysis.";
+        document.getElementById('position-table').querySelector('tbody').innerHTML = '';
+        return;
+      }
+      
+      standardTrials.forEach(trial => {
+        const selectedWords = [];
+        const choiceOptions = [];
+        
+        // Extract selected words
+        for (let i = 1; trial[`selected${i}`]; i++) {
+          selectedWords.push(trial[`selected${i}`]);
+        }
+        
+        // Extract choice options
+        const maxChoices = trial.numChoices || 6;
+        for (let i = 1; i <= maxChoices; i++) {
+          if (trial[`choice${i}`]) {
+            choiceOptions.push(trial[`choice${i}`]);
+          }
+        }
+        
+        // Record data by presentation position
+        for (let pos = 0; pos < standardLength; pos++) {
+          const word = trial[`shown${pos + 1}`];
+          if (word) {
+            positionData[pos].shown++;
+            
+            // Only count words that were available as choices
+            if (choiceOptions.includes(word)) {
+              positionData[pos].available++;
+              if (selectedWords.includes(word)) {
+                positionData[pos].recalled++;
+              }
+            }
+          }
+        }
+      });
+      
+      // Calculate recall rates (only for words that were available as choices)
+      const recallRates = positionData.map(p => p.available > 0 ? p.recalled / p.available : 0);
+      
+      // Calculate overall average from positions with data
+      const validRates = recallRates.filter((_, idx) => positionData[idx].available > 0);
+      const overallRate = validRates.length > 0 ? 
+        validRates.reduce((sum, rate) => sum + rate, 0) / validRates.length : 0;
+      
+      // Update position-specific rates
+      document.getElementById('first-position-rate').textContent = 
+        positionData[0].available > 0 ? `${(recallRates[0] * 100).toFixed(1)}% (n=${positionData[0].available})` : 'No data';
+      
+      // Middle positions (2 to 5 for 6-word lists)
+      const middleData = positionData.slice(1, standardLength - 1);
+      const middleAvailable = middleData.reduce((sum, p) => sum + p.available, 0);
+      const middleRecalled = middleData.reduce((sum, p) => sum + p.recalled, 0);
+      const middleRate = middleAvailable > 0 ? middleRecalled / middleAvailable : 0;
+      
+      document.getElementById('middle-positions-rate').textContent = 
+        middleAvailable > 0 ? `${(middleRate * 100).toFixed(1)}% (n=${middleAvailable})` : 'No data';
+      
+      // Last position
+      document.getElementById('last-position-rate').textContent = 
+        positionData[standardLength - 1].available > 0 ? 
+        `${(recallRates[standardLength - 1] * 100).toFixed(1)}% (n=${positionData[standardLength - 1].available})` : 'No data';
+      
+      // Update position table
+      const tableEl = document.getElementById('position-table').querySelector('tbody');
+      tableEl.innerHTML = '';
+      
+      positionData.forEach((data, pos) => {
+        const recallRate = data.available > 0 ? (data.recalled / data.available) * 100 : 0;
+        const missRate = data.available > 0 ? ((data.available - data.recalled) / data.available) * 100 : 0;
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>Position ${pos + 1}</td>
+          <td>${data.available > 0 ? recallRate.toFixed(1) + '%' : 'No data'} ${data.available > 0 ? `(${data.recalled}/${data.available})` : ''}</td>
+          <td>${data.available > 0 ? missRate.toFixed(1) + '%' : 'No data'} ${data.available > 0 ? `(${data.available - data.recalled}/${data.available})` : ''}</td>
+        `;
+        tableEl.appendChild(row);
+      });
+      
+      // Update summary based on data patterns
+      let summary = "Based on the current data (only considering words that were presented as choices): ";
+      
+      // Need minimum sample sizes to make judgments
+      const sufficientFirstData = positionData[0].available >= 5;
+      const sufficientMiddleData = middleAvailable >= 10; // Higher threshold for combined positions
+      const sufficientLastData = positionData[standardLength - 1].available >= 5;
+      
+      if (!sufficientFirstData || !sufficientMiddleData || !sufficientLastData) {
+        summary += "Insufficient data for reliable position effect analysis. More trials needed.";
+        document.getElementById('position-summary').textContent = summary;
+        return;
+      }
+      
+      // Check for primacy effect (first position recalled better than middle)
+      const primacyEffect = recallRates[0] > (middleRate * 1.15); // At least 15% better
+      
+      // Check for recency effect (last position recalled better than middle)
+      const recencyEffect = recallRates[standardLength - 1] > (middleRate * 1.15);
+      
+      if (primacyEffect && recencyEffect) {
+        summary += "Strong evidence of both primacy and recency effects. Words presented first and last are remembered better than those in the middle.";
+      } else if (primacyEffect) {
+        summary += "Evidence of primacy effect. Words presented first are remembered better than those in the middle.";
+      } else if (recencyEffect) {
+        summary += "Evidence of recency effect. Words presented last are remembered better than those in the middle.";
+      } else {
+        summary += "No strong position effects detected. Words appear to be remembered equally well regardless of presentation position.";
+      }
+      
+      document.getElementById('position-summary').textContent = summary;
+    }
+    
+    // Update hypothesis testing
+    function updateHypothesisTesting() {
+      // All trials are now standardized to 6 words
+      const standardLength = 6;
+      
+      // Filter only 6-word trials
+      const standardTrials = allTrials.filter(t => t.listLength === standardLength);
+      
+      if (standardTrials.length < 5) {
+        document.getElementById('hypothesis-result').textContent = 
+          "Insufficient data for hypothesis testing. Need at least 5 trials.";
+        document.getElementById('hypothesis-details').innerHTML = '';
+        return;
+      }
+      
+      // Calculate observed recall by position, accounting for available choices
+      const observed = Array(standardLength).fill().map(() => ({ presented: 0, correct: 0, available: 0 }));
+      
+      standardTrials.forEach(trial => {
+        const selectedWords = [];
+        const choiceOptions = [];
+        const shownWords = [];
+        
+        // Extract selected words
+        for (let i = 1; trial[`selected${i}`]; i++) {
+          selectedWords.push(trial[`selected${i}`]);
+        }
+        
+        // Extract choice options
+        const maxChoices = trial.numChoices || 6;
+        for (let i = 1; i <= maxChoices; i++) {
+          if (trial[`choice${i}`]) {
+            choiceOptions.push(trial[`choice${i}`]);
+          }
+        }
+        
+        // Extract shown words and their positions
+        for (let pos = 0; pos < standardLength; pos++) {
+          const word = trial[`shown${pos + 1}`];
+          if (word) {
+            shownWords.push(word);
+            
+            // Count this word as presented at this position
+            observed[pos].presented++;
+            
+            // Check if this word was available as a choice
+            if (choiceOptions.includes(word)) {
+              observed[pos].available++;
+              
+              // Check if this word was correctly recalled
+              if (selectedWords.includes(word)) {
+                observed[pos].correct++;
+              }
+            }
+          }
+        }
+      });
+      
+      // Calculate recall rates by position (only for words that were available as choices)
+      const recallRates = observed.map(p => 
+        (p.available > 0) ? (p.correct / p.available * 100) : 0
+      );
+      
+      // Calculate overall average from positions with data
+      const validRates = recallRates.filter((_, idx) => observed[idx].available > 0);
+      const avgRecall = validRates.length > 0 ? 
+        validRates.reduce((sum, rate) => sum + rate, 0) / validRates.length : 0;
+      
+      // Check if any position is significantly different (>15% from average)
+      const significantDifference = recallRates.some((rate, idx) => 
+        observed[idx].available >= 5 && Math.abs(rate - avgRecall) > (avgRecall * 0.15)
+      );
+      
+      // Generate hypothesis result
+      let result = '';
+      if (significantDifference) {
+        result = "<strong>The null hypothesis is rejected</strong>. The data shows significant differences in recall based on presentation position. ";
+        
+        // Check which positions differ most
+        const significantPositions = recallRates
+          .map((rate, index) => ({ 
+            position: index + 1, 
+            rate, 
+            diff: rate - avgRecall,
+            sampleSize: observed[index].available
+          }))
+          .filter(p => p.sampleSize >= 5 && Math.abs(p.diff) > (avgRecall * 0.15))
+          .sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
+        
+        if (significantPositions.length > 0) {
+          result += "The most significant differences were found at positions: ";
+          result += significantPositions.map(p => 
+            `${p.position} (${p.diff > 0 ? '+' : ''}${p.diff.toFixed(1)}%, n=${p.sampleSize})`
+          ).join(', ');
+        }
+      } else {
+        result = "<strong>Failed to reject the null hypothesis</strong>. The current data does not provide sufficient evidence that presentation position affects recall.";
+      }
+      
+      document.getElementById('hypothesis-result').innerHTML = result;
+      
+      // Show detailed position data
+      let detailsHtml = '<h4>Recall Rates by Position (Adjusted for Available Choices)</h4><ul>';
+      recallRates.forEach((rate, index) => {
+        const diffFromAvg = rate - avgRecall;
+        const significant = observed[index].available >= 5 && Math.abs(diffFromAvg) > (avgRecall * 0.15);
+        const sampleSize = observed[index].available;
+        
+        detailsHtml += `<li>Position ${index + 1}: ${rate.toFixed(1)}% `;
+        detailsHtml += `(${observed[index].correct} correct out of ${sampleSize} available) `;
+        
+        if (diffFromAvg !== 0 && sampleSize > 0) {
+          detailsHtml += `(${diffFromAvg > 0 ? '+' : ''}${diffFromAvg.toFixed(1)}% from average) `;
+        }
+        
+        if (significant) {
+          detailsHtml += '<strong>Significant</strong>';
+        }
+        
+        if (sampleSize < 5 && sampleSize > 0) {
+          detailsHtml += ' <em>(small sample size)</em>';
+        }
+        
+        detailsHtml += '</li>';
+      });
+      detailsHtml += '</ul>';
+      
+      detailsHtml += `<p>Average recall rate across all positions: ${avgRecall.toFixed(1)}%</p>`;
+      detailsHtml += `<p><strong>Note:</strong> This analysis only considers words that were both shown to participants <em>and</em> available as choices during the recall phase, providing a more accurate measure of position effects.</p>`;
+      
+      document.getElementById('hypothesis-details').innerHTML = detailsHtml;
+    }
+    
+    // Export data as CSV
+    function exportCSV() {
+      if (allTrials.length === 0) {
+        showStatus("No data to export", 'error');
+        return;
+      }
+      
+      // Create CSV content
+      let csvContent = "Participant,Trial Number,List Length,Words Shown,Words Selected,Correct Selections,Accuracy\n";
+      
+      allTrials.forEach(trial => {
+        const shownWords = [];
+        const selectedWords = [];
+        
+        // Extract shown words
+        for (let i = 1; i <= trial.listLength; i++) {
+          if (trial[`shown${i}`]) {
+            shownWords.push(trial[`shown${i}`]);
+          }
+        }
+        
+        // Extract selected words
+        for (let i = 1; trial[`selected${i}`]; i++) {
+          selectedWords.push(trial[`selected${i}`]);
+        }
+        
+        // Calculate metrics
+        const correctSelections = selectedWords.filter(word => shownWords.includes(word)).length;
+        const accuracy = ((correctSelections / shownWords.length) * 100).toFixed(1);
+        
+        // Format CSV row
+        const row = [
+          trial.participantName || 'Anonymous',
+          trial.trialNumber || '',
+          trial.listLength,
+          shownWords.join('|'),
+          selectedWords.join('|'),
+          correctSelections,
+          accuracy
+        ];
+        
+        // Add row to CSV content
+        csvContent += row.map(cell => `"${cell}"`).join(',') + '\n';
+      });
+      
+      // Create and trigger download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `memory-data-${new Date().toISOString().slice(0, 10)}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      showStatus("Data exported successfully");
+    }
+    
+    // Delete all data
+    async function deleteAllData() {
+      if (!confirm("Warning: This will delete ALL experiment data. This action cannot be undone. Continue?")) {
+        return;
+      }
+      
+      try {
+        const snapshot = await getDocs(collection(db, "trials"));
+        
+        if (snapshot.docs.length === 0) {
+          showStatus("No data to delete", 'error');
+          return;
+        }
+        
+        for (const doc of snapshot.docs) {
+          await deleteDoc(doc.ref);
+        }
+        
+        allTrials = [];
+        updateAllUI();
+        showStatus("All data deleted successfully");
+      } catch (error) {
+        console.error("Error deleting data:", error);
+        showStatus("Error deleting data", 'error');
+      }
+    }
+    
+    // Set up event listeners
+    document.getElementById('load-btn').addEventListener('click', loadData);
+    document.getElementById('export-btn').addEventListener('click', exportCSV);
+    document.getElementById('delete-btn').addEventListener('click', deleteAllData);
+    
+    // Load data on page load
+    loadData();
+  </script>
+</body>
+</html>
