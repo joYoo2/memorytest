@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Memory Recognition Experiment</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      height: 100vh; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      background: #f8f9fa; 
+      text-align: center; 
+      color: #333;
+    }
+    #container { 
+      padding: 2rem; 
+      max-width: 700px; 
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      margin: 20px auto;
+    }
+    .hidden { display: none; }
+    .stimulus { 
+      font-size: 3.5rem; 
+      margin: 2rem 0; 
+      font-weight: bold;
+      letter-spacing: 1px;
+      color: #4a6fa5;
+    }
+    .button {
+      padding: 0.8rem 2rem;
+      margin: 0.5rem;
+      font-size: 1.1rem;
+      cursor: pointer;
+      border-radius: 5px;
+      transition: all 0.2s ease;
+    }
+    .button-primary { 
+      background: #4a6fa5; 
+      color: white; 
+      border: none;
+    }
+    .button-primary:hover {
+      background: #3a5985;
+    }
+    .button-secondary { 
+      border: 1px solid #ccc; 
+      background: white; 
+    }
+    .button-secondary:hover {
+      background: #f5f5f5;
+    }
+    .selected { 
+      background: #d1e7ff !important; 
+      border-color: #4a6fa5 !important; 
+      color: #2c4570;
+      font-weight: bold;
+      box-shadow: 0 0 0 2px #4a6fa5;
+    }
+    .selected:hover {
+      background: #b3d7ff !important;
+    }
+    .instructions {
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+    }
+    .choice-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+    @media (max-width: 600px) {
+      .choice-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    @media (max-width: 400px) {
+      .choice-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    input {
+      padding: 0.8rem;
+      margin: 0.5rem 0;
+      font-size: 1rem;
+      width: 80%;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .progress {
+      height: 6px;
+      background: #eee;
+      margin: 1rem 0;
+      border-radius: 3px;
+    }
+    .progress-bar {
+      height: 100%;
+      background: #4a6fa5;
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+    .trial-counter {
+      font-size: 0.9rem;
+      color: #6c757d;
+      margin-bottom: 1rem;
+    }
+    .fixation {
+      font-size: 3rem;
+      font-weight: bold;
+    }
+    .feedback {
+      margin-top: 1rem;
+      padding: 1rem;
+      border-radius: 5px;
+    }
+    .feedback.correct {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .feedback.incorrect {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    .results-summary {
+      text-align: left;
+      background: #f8f9fa;
+      padding: 1.5rem;
+      border-radius: 8px;
+      margin: 1rem 0;
+    }
+    .results-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+    }
+    .results-table th,
+    .results-table td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+    .results-table th {
+      background-color: #4a6fa5;
+      color: white;
+    }
+    .results-table tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+    .metric-card {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 0.5rem 0;
+      display: inline-block;
+      min-width: 150px;
+    }
+    .metric-value {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #4a6fa5;
+    }
+    .metric-label {
+      font-size: 0.9rem;
+      color: #6c757d;
+      margin-top: 0.5rem;
+    }
+    .metrics-container {
+      display: flex;
+      justify-content: space-around;
+      flex-wrap: wrap;
+      margin: 1rem 0;
+    }
+    .trial-breakdown {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin: 1rem 0;
+    }
+    .word-lists {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin: 1rem 0;
+    }
+    .word-column {
+      background: #f8f9fa;
+      padding: 1rem;
+      border-radius: 6px;
+    }
+    .word-column h4 {
+      margin-bottom: 0.5rem;
+      color: #495057;
+    }
+    .word-list {
+      list-style: none;
+      padding: 0;
+    }
+    .word-list li {
+      padding: 0.3rem 0.5rem;
+      margin: 0.2rem 0;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+    .word-correct {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .word-missed {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    .word-wrong {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    .word-neutral {
+      background-color: #e9ecef;
+      color: #495057;
+    }
+    .trial-score {
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #4a6fa5;
+      margin-top: 1rem;
+    }
+    @media (max-width: 600px) {
+      .word-lists {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <!-- Introduction Screen -->
+    <div id="intro">
+      <h1>Memory Recognition Experiment</h1>
+      <p class="instructions">
+        In this experiment, you will be shown a series of 9 words one at a time.
+        Afterwards, you will be asked to select which words you saw.
+        <br><br>
+        Please concentrate and try to remember as many words as possible.
+        You will complete 3 trials in total.
+      </p>
+      <input type="text" id="participant-id" placeholder="Enter your name" required />
+      <br>
+      <button class="button button-primary" onclick="startExperiment()">Start Experiment</button>
+    </div>
+
+    <!-- Fixation Point -->
+    <div id="fixation" class="hidden">
+      <div class="fixation">+</div>
+    </div>
+
+    <!-- Stimulus Display -->
+    <div id="stimulus" class="hidden">
+      <div class="stimulus" id="stimulus-text"></div>
+    </div>
+
+    <!-- Choice Selection -->
+    <div id="choice" class="hidden">
+      <h2>Which words did you see?</h2>
+      <p>Select all the words you remember seeing.</p>
+      
+      <div class="choice-grid" id="choice-buttons"></div>
+      
+      <button class="button button-primary" onclick="submitChoices()">Submit Selections</button>
+    </div>
+
+    <!-- Trial Feedback -->
+    <div id="feedback" class="hidden">
+      <h2>Results</h2>
+      <div id="feedback-content" class="feedback"></div>
+      <div class="trial-counter" id="trial-counter">Trial 1 of 3</div>
+      <div class="progress">
+        <div class="progress-bar" id="progress-bar" style="width: 33.3%"></div>
+      </div>
+      <button class="button button-primary" onclick="startNextTrial()">Continue</button>
+    </div>
+
+    <!-- Results Summary -->
+    <div id="results" class="hidden">
+      <h2>Your Results</h2>
+      <p>Here's how you did across all 3 trials:</p>
+      
+      <div class="metrics-container">
+        <div class="metric-card">
+          <div class="metric-value" id="total-correct">-</div>
+          <div class="metric-label">Words Remembered Correctly</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="overall-score">-</div>
+          <div class="metric-label">Overall Score</div>
+        </div>
+      </div>
+      
+      <div id="trial-details">
+        <!-- Trial-by-trial visual breakdown will be inserted here -->
+      </div>
+      
+      <button class="button button-primary" onclick="resetExperiment()">Start New Session</button>
+    </div>
+
+    <!-- Experiment Complete -->
+    <div id="done" class="hidden">
+      <h2>Experiment Complete</h2>
+      <p>Thank you for participating!</p>
+      <p>Your responses have been recorded.</p>
+      <button class="button button-primary" onclick="resetExperiment()">Start New Session</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.7.3/firebase-app.js';
+    import { getFirestore, collection, addDoc } from 'https://www.gstatic.com/firebasejs/11.7.3/firebase-firestore.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBBMg82BmMWYsaUzgDJDKUmS_LtfRPrYZs",
+      authDomain: "ordereffectstudy.firebaseapp.com",
+      projectId: "ordereffectstudy",
+      storageBucket: "ordereffectstudy.firebasestorage.app",
+      messagingSenderId: "938311020791",
+      appId: "1:938311020791:web:bd500efe48de1a48dce3f2",
+      measurementId: "G-DZYLNQ5YLX"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // ⚙️ EXPERIMENT CONFIGURATION
+    const FIXED_PARAMETERS = {
+      STIMULUS_DURATION: 1200, // ms per word
+      FIXATION_DURATION: 1000, // ms for fixation cross
+      NUM_WORDS_TO_SHOW: 9, // changed from 6 to 9 words
+      TOTAL_CHOICES: 9, // total choices to present (correct + incorrect)
+      NUM_TRIALS: 3 // 3 trials per participant
+    };
+
+    // Word pool - using the same nonwords from your original experiment
+    const WORD_POOL = [
+      "BAFTO", "ZERMIK", "PLANDU", "SOMRA", "TULVEX", "MORDAL", "KAVTOR", "DREMIX", "JUNTRA", "VALNOR",
+      "ZALPHA", "BRENIK", "VORLAM", "NEDRA", "PALKIR", "JORVEN", "TRALIX", "KERMAN", "LUXOR", "FERBIN",
+      "GROLAR", "WEXLIN", "ZANTOR", "MIRVAL", "KOLPIN", "DANTOR", "FALDRI", "GENTRA", "MULNOR", "ZORBIN",
+      "NARLEX", "YEMTOR", "ZINTOR", "VULTRA", "HARDEN", "BLONIX", "XERTAL", "QUANDU", "TROVEX", "SANDUR",
+      "YOLTRA", "NERBIN", "VELTRI", "PONTRA", "WALDOR", "TREXIN", "JALTOR", "FENLAR", "CRANTU", "GORVAL"
+    ];
+
+    // Global variables
+    let participantID = "";
+    let currentTrial = 0;
+    let currentPosition = 0;
+    let stimulusList = [];
+    let choiceOptions = [];
+    let selectedWords = [];
+    let selectionTimestamps = [];
+    let trialStartTime = null;
+    let trialResults = []; // Store results from each trial
+    let correctChoicesPerTrial = []; // Store how many correct choices for each trial
+
+    // Expose functions to global scope
+    window.startExperiment = startExperiment;
+    window.submitChoices = submitChoices;
+    window.startNextTrial = startNextTrial;
+    window.resetExperiment = resetExperiment;
+
+    // Show a specific section of the experiment
+    function show(id) {
+      document.querySelectorAll("#intro, #fixation, #stimulus, #choice, #feedback, #results, #done").forEach(el => el.classList.add("hidden"));
+      document.getElementById(id).classList.remove("hidden");
+    }
+
+    // Shuffle array randomly (Fisher-Yates algorithm)
+    function shuffle(array) {
+      const newArray = [...array];
+      for (let i = newArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+      }
+      return newArray;
+    }
+
+    // Start the experiment
+    function startExperiment() {
+      participantID = document.getElementById("participant-id").value.trim();
+      if (!participantID) {
+        alert("Please enter your name to begin the experiment.");
+        return;
+      }
+      
+      currentTrial = 0;
+      trialResults = [];
+      
+      // Generate random number of correct choices for each trial (between 1 and 9)
+      correctChoicesPerTrial = [];
+      for (let i = 0; i < FIXED_PARAMETERS.NUM_TRIALS; i++) {
+        correctChoicesPerTrial.push(Math.floor(Math.random() * 9) + 1); // Random number from 1-9
+      }
+      
+      startNextTrial();
+    }
+
+    // Prepare and start a new trial
+    function startNextTrial() {
+      currentTrial++;
+      
+      // Update progress indicators
+      if (currentTrial <= FIXED_PARAMETERS.NUM_TRIALS) {
+        document.getElementById("trial-counter").textContent = `Trial ${currentTrial} of ${FIXED_PARAMETERS.NUM_TRIALS}`;
+        document.getElementById("progress-bar").style.width = `${(currentTrial / FIXED_PARAMETERS.NUM_TRIALS) * 100}%`;
+      }
+      
+      // If we've completed all trials, show results summary
+      if (currentTrial > FIXED_PARAMETERS.NUM_TRIALS) {
+        showResultsSummary();
+        return;
+      }
+      
+      // Reset trial variables
+      currentPosition = 0;
+      selectedWords = [];
+      selectionTimestamps = [];
+      
+      // Create stimulus list - 9 random words from the pool
+      const shuffledPool = shuffle(WORD_POOL);
+      stimulusList = shuffledPool.slice(0, FIXED_PARAMETERS.NUM_WORDS_TO_SHOW);
+      
+      // Get the number of correct choices for this trial
+      const numCorrectChoices = correctChoicesPerTrial[currentTrial - 1];
+      
+      // Create choice options
+      // numCorrectChoices random words from stimulusList + remaining incorrect words
+      const correctChoices = shuffle(stimulusList).slice(0, numCorrectChoices);
+      const numIncorrectChoices = FIXED_PARAMETERS.TOTAL_CHOICES - numCorrectChoices;
+      const incorrectChoices = shuffle(shuffledPool.slice(FIXED_PARAMETERS.NUM_WORDS_TO_SHOW, 
+                                           FIXED_PARAMETERS.NUM_WORDS_TO_SHOW + numIncorrectChoices));
+      
+      // Combine and shuffle choice options
+      choiceOptions = shuffle([...correctChoices, ...incorrectChoices]);
+      
+      // Start with fixation
+      show("fixation");
+      setTimeout(() => startStimulusSequence(), FIXED_PARAMETERS.FIXATION_DURATION);
+    }
+
+    // Display stimulus words one by one
+    function startStimulusSequence() {
+      // Show the current stimulus
+      show("stimulus");
+      document.getElementById("stimulus-text").textContent = stimulusList[currentPosition];
+      
+      // Move to next position or choices after delay
+      setTimeout(() => {
+        currentPosition++;
+        if (currentPosition < stimulusList.length) {
+          startStimulusSequence(); // Show next word
+        } else {
+          showChoices(); // Finished all words, move to choice phase
+        }
+      }, FIXED_PARAMETERS.STIMULUS_DURATION);
+    }
+
+    // Display choice options for selection
+    function showChoices() {
+      show("choice");
+      const buttonsDiv = document.getElementById("choice-buttons");
+      buttonsDiv.innerHTML = "";
+      
+      // Record timing for selection phase
+      trialStartTime = performance.now();
+      
+      // Create a button for each choice option
+      choiceOptions.forEach(word => {
+        const btn = document.createElement("button");
+        btn.innerText = word;
+        btn.className = "button button-secondary";
+        btn.onclick = () => toggleSelection(word, btn);
+        buttonsDiv.appendChild(btn);
+      });
+    }
+
+    // Handle word selection/deselection
+    function toggleSelection(word, button) {
+      const now = performance.now();
+      const index = selectedWords.indexOf(word);
+      
+      if (index > -1) {
+        // Deselect word
+        selectedWords.splice(index, 1);
+        selectionTimestamps.splice(index, 1);
+        button.classList.remove("selected");
+      } else {
+        // Select word
+        selectedWords.push(word);
+        selectionTimestamps.push(Math.round(now - trialStartTime));
+        button.classList.add("selected");
+      }
+    }
+
+    // Submit responses and record data
+    async function submitChoices() {
+      // Get the number of correct choices for this trial
+      const numCorrectChoices = correctChoicesPerTrial[currentTrial - 1];
+      
+      // Calculate performance metrics
+      const correctSelections = selectedWords.filter(word => stimulusList.includes(word));
+      const incorrectSelections = selectedWords.filter(word => !stimulusList.includes(word));
+      const correctChoicesInOptions = choiceOptions.filter(word => stimulusList.includes(word));
+      const missedSelections = correctChoicesInOptions.filter(word => !selectedWords.includes(word));
+      
+      const accuracy = correctChoicesInOptions.length > 0 ? 
+                      (correctSelections.length / correctChoicesInOptions.length) * 100 : 0;
+      
+      const precision = selectedWords.length > 0 ? 
+                       (correctSelections.length / selectedWords.length) * 100 : 0;
+      
+      // Create data object for this trial
+      const trialData = {
+        timestamp: new Date().toISOString(),
+        participantName: participantID,
+        trialNumber: currentTrial,
+        listLength: FIXED_PARAMETERS.NUM_WORDS_TO_SHOW,
+        numChoices: FIXED_PARAMETERS.TOTAL_CHOICES,
+        numCorrectChoicesInOptions: numCorrectChoices,
+        accuracy: accuracy.toFixed(1),
+        precision: precision.toFixed(1),
+        correctSelections: correctSelections.length,
+        totalSelected: selectedWords.length,
+        totalCorrectAvailable: correctChoicesInOptions.length
+      };
+      
+      // Record all words that were shown in presentation order
+      for (let i = 0; i < stimulusList.length; i++) {
+        trialData[`shown${i + 1}`] = stimulusList[i];
+      }
+      
+      // Record all choice options in choice order
+      for (let i = 0; i < choiceOptions.length; i++) {
+        trialData[`choice${i + 1}`] = choiceOptions[i];
+      }
+      
+      // Record all selected words
+      for (let i = 0; i < selectedWords.length; i++) {
+        trialData[`selected${i + 1}`] = selectedWords[i];
+        trialData[`time${i + 1}`] = selectionTimestamps[i];
+      }
+      
+      // Save trial results locally
+      trialResults.push(trialData);
+      
+      // Send to Firestore
+      try {
+        await addDoc(collection(db, "trials"), trialData);
+        console.log("✅ Trial data logged to Firestore");
+      } catch (err) {
+        console.error("❌ Failed to log trial data: ", err);
+      }
+      
+      // Show feedback
+      showTrialFeedback(correctSelections.length, correctChoicesInOptions.length, incorrectSelections.length);
+    }
+
+    // Show feedback after trial completion
+    function showTrialFeedback(correctSelections, possibleCorrect, incorrectSelections) {
+      show("feedback");
+      
+      const feedbackContent = document.getElementById("feedback-content");
+      
+      // Simple generic feedback without telling them how many correct
+      feedbackContent.className = "feedback correct";
+      feedbackContent.innerHTML = "<p>Good job! Let's continue to the next part.</p>";
+    }
+
+    // Show results summary after all trials
+    function showResultsSummary() {
+      show("results");
+      
+      // Calculate overall metrics
+      let totalCorrect = 0;
+      let totalAvailable = 0;
+      
+      trialResults.forEach(trial => {
+        totalCorrect += trial.correctSelections;
+        totalAvailable += trial.totalCorrectAvailable;
+      });
+      
+      // Update metric cards - check if elements exist first
+      const totalCorrectEl = document.getElementById("total-correct");
+      const overallScoreEl = document.getElementById("overall-score");
+      
+      if (totalCorrectEl) {
+        totalCorrectEl.textContent = totalCorrect;
+      }
+      if (overallScoreEl) {
+        overallScoreEl.textContent = `${totalCorrect}/${totalAvailable}`;
+      }
+      
+      // Generate visual trial breakdown
+      generateTrialBreakdown();
+    }
+
+    // Generate visual trial breakdown
+    function generateTrialBreakdown() {
+      const detailsDiv = document.getElementById("trial-details");
+      if (!detailsDiv) {
+        console.error("trial-details element not found");
+        return;
+      }
+      
+      detailsDiv.innerHTML = "";
+      
+      trialResults.forEach((trial, index) => {
+        // Get the words that were actually shown
+        const shownWords = [];
+        for (let i = 1; i <= 9; i++) {
+          if (trial[`shown${i}`]) {
+            shownWords.push(trial[`shown${i}`]);
+          }
+        }
+        
+        // Get the words that were selected
+        const selectedWords = [];
+        for (let i = 1; trial[`selected${i}`]; i++) {
+          selectedWords.push(trial[`selected${i}`]);
+        }
+        
+        // Get the choice options that were available
+        const choiceOptions = [];
+        for (let i = 1; trial[`choice${i}`]; i++) {
+          choiceOptions.push(trial[`choice${i}`]);
+        }
+        
+        // Find correct choices (words that were both shown and available as choices)
+        const correctChoices = choiceOptions.filter(word => shownWords.includes(word));
+        
+        // Create trial breakdown HTML
+        const trialDiv = document.createElement("div");
+        trialDiv.className = "trial-breakdown";
+        
+        trialDiv.innerHTML = `
+          <h3>Trial ${trial.trialNumber}</h3>
+          <div class="word-lists">
+            <div class="word-column">
+              <h4>Words Available to Choose From</h4>
+              <ul class="word-list">
+                ${choiceOptions.map(word => {
+                  if (shownWords.includes(word) && selectedWords.includes(word)) {
+                    return `<li class="word-correct">${word} ✓ (Correct)</li>`;
+                  } else if (shownWords.includes(word) && !selectedWords.includes(word)) {
+                    return `<li class="word-missed">${word} (Missed)</li>`;
+                  } else {
+                    return `<li class="word-neutral">${word}</li>`;
+                  }
+                }).join("")}
+              </ul>
+            </div>
+            <div class="word-column">
+              <h4>Your Selections</h4>
+              <ul class="word-list">
+                ${selectedWords.length > 0 ? selectedWords.map(word => {
+                  if (shownWords.includes(word)) {
+                    return `<li class="word-correct">${word} ✓ (Correct)</li>`;
+                  } else {
+                    return `<li class="word-wrong">${word} ✗ (Not shown)</li>`;
+                  }
+                }).join("") : '<li class="word-neutral">No words selected</li>'}
+              </ul>
+            </div>
+          </div>
+          <div class="trial-score">
+            Score: ${trial.correctSelections}/${trial.totalCorrectAvailable} correct
+          </div>
+        `;
+        
+        detailsDiv.appendChild(trialDiv);
+      });
+    }
+
+    // Reset experiment for a new participant
+    function resetExperiment() {
+      participantID = "";
+      currentTrial = 0;
+      trialResults = [];
+      document.getElementById("participant-id").value = "";
+      show("intro");
+    }
+  </script>
+</body>
+</html>
